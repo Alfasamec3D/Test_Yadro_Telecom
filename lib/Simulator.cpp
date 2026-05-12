@@ -6,9 +6,7 @@
 
 namespace {
 
-
-
-// Обновляет известность для комнаты, в которую бот «зашёл».
+// Update knowledge of the visited room
 void reveal_on_enter(BotView& v, const Dungeon& d, int room) {
   auto bump = [&](int x, Knowledge target) {
     if (v.known[x] < target) v.known[x] = target;
@@ -32,33 +30,30 @@ void reveal_on_enter(BotView& v, const Dungeon& d, int room) {
   }
 }
 
-long long compute_total_value(const std::map<ResourceType, long long>& totals,
-                              ResourceType target) {
-  long long val = 0;
+int compute_total_value(const std::map<ResourceType, int>& totals,
+                        const ResourceType& target) {
+  int val{};
   for (const auto& [type, count] : totals) {
-    auto it = BASE_VALUES.find(type);
-    if (it == BASE_VALUES.end()) continue;
-    long long base = it->second;
-    if (type == target) base *= 2;
-    val += base * count;
+    if (type == target)
+      val += 2 * count * BASE_VALUES.at(type);
+    else
+      val += count * BASE_VALUES.at(type);
   }
   return val;
 }
 
 void print_result_line(std::ostream& out,
-                       const std::map<ResourceType, long long>& totals,
-                       long long val) {
+                       const std::map<ResourceType, int>& totals, int val) {
   out << "result";
-  for (const auto& [type, count] : totals) {
-    (void)type;
+  for (const auto& [_, count] : totals) {
     out << ' ' << count;
   }
-  out << ' ' << val << '\n';
+  out << ' ' << val << std::endl;
 }
 
 }  // namespace
 
-long long run_simulation(Dungeon& d, int food, IBot& bot, std::ostream& out) {
+void run_simulation(Dungeon& d, int food, IBot& bot, std::ostream& out) {
   const int n = d.N();
 
   BotView v;
@@ -71,25 +66,10 @@ long long run_simulation(Dungeon& d, int food, IBot& bot, std::ostream& out) {
   v.neighbors.assign(n + 1, {});
   v.res.assign(n + 1, {});
 
-  std::map<ResourceType, long long> totals;
+  std::map<ResourceType, int> totals;
   for (const auto& [type, _] : BASE_VALUES) totals[type] = 0;
 
   reveal_on_enter(v, d, 0);
-
-  auto print_state_now = [&](int room) {
-    out << "state " << room;
-    // Состояние ресурса — _ если он есть в grabbed_resources комнаты.
-    // grabbed_resources на Room — источник истины.
-    const auto& grabbed = d.room_id(room).grabbed_resources();
-    for (const auto& [type, count] : v.res[room]) {
-      out << ' ';
-      if (grabbed.count(type))
-        out << '_';
-      else
-        out << count;
-    }
-    out << '\n';
-  };
 
   int safety_limit = 100000;
   while (safety_limit-- > 0) {
@@ -113,11 +93,11 @@ long long run_simulation(Dungeon& d, int food, IBot& bot, std::ostream& out) {
       v.current = to;
       reveal_on_enter(v, d, to);
       out << "go " << to << '\n';
-      if (to != 0) print_state_now(to);
+      if (to != 0) out << d.room_id(to) << std::endl;
       if (to == 0) {
-        long long val = compute_total_value(totals, d.target());
+        int val = compute_total_value(totals, d.target());
         print_result_line(out, totals, val);
-        return val;
+        return;
       }
       continue;
     }
@@ -130,32 +110,24 @@ long long run_simulation(Dungeon& d, int food, IBot& bot, std::ostream& out) {
 
       // Источник истины — Room. Первый сбор в комнате (когда grabbed
       // ещё пуст) бесплатный, последующие стоят 1 еды.
-      bool any_before = !d.room_id(room).grabbed_resources().empty();
-      if (any_before) {
+
+      if (!d.room_id(room).grabbed_resources().empty()) {
         if (v.food_left <= 0) break;
         v.food_left -= 1;
       }
 
-      // grab() возвращает забранное количество и мутирует Room.
-      int amount = d.room_id(room).grab(k);
-      totals[k] += amount;
-      // Синхронизируем то, что бот «видит» в этой комнате.
+      totals[k] += d.room_id(room).grab(k);
+
       it->second = 0;
 
-      auto name_it = RES_NAMES.find(k);
-      out << "collect "
-          << (name_it != RES_NAMES.end() ? name_it->second : std::string("?"))
-          << '\n';
-      print_state_now(room);
+      out << "collect " << RES_NAMES.at(k) << std::endl
+          << d.room_id(room) << std::endl;
       continue;
     }
     break;
   }
 
-  if (v.current == 0) {
-    long long val = compute_total_value(totals, d.target());
-    print_result_line(out, totals, val);
-    return val;
-  }
-  return 0;
+  if (v.current == 0)
+    print_result_line(out, totals, compute_total_value(totals, d.target()));
+  return;
 }

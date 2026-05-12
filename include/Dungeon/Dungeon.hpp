@@ -4,6 +4,7 @@
 #include <map>
 #include <set>
 #include <vector>
+#include <iostream>
 
 #include "Resources.hpp"
 
@@ -20,7 +21,6 @@ class Room final {
        const std::map<ResourceType, int> resources)
       : id_(id), neighbors_(start_neigh, end_neigh), resources_(resources) {}
 
-  const size_t& id() const { return id_; }
 
   const std::vector<int>& neighbors() const { return neighbors_; }
 
@@ -36,7 +36,22 @@ class Room final {
     resources_[type] = 0;
     return loot;
   }
+
+  friend std::ostream& operator<<(std::ostream& os,const Room& room) {
+  os << "state " << room.id_;
+
+  for (const auto& [type, count] : room.resources_) {
+    os << ' ';
+    if (room.grabbed_resources().count(type))
+      os << '_';
+    else
+      os << count;
+  }
+  return os;
+}
+
 };
+
 
 class Dungeon final {
  private:

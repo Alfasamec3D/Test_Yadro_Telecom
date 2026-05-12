@@ -19,8 +19,7 @@ int main(int argc, char** argv) {
     return 0;
   }
 
-  // Чтобы испытать другой алгоритм — замените тип здесь:
   AliceBot bot;
-  run_simulation(*pr.dungeon, pr.food, bot, fout);
+  run_simulation(*pr.dungeon, pr.M_, bot, fout);
   return 0;
 }

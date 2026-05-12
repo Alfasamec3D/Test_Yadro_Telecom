@@ -10,7 +10,7 @@ enum ResourceType {
 };
 
 
-static const std::map<ResourceType, int> BASE_VALUES = {
+const std::map<ResourceType, int> BASE_VALUES = {
     {RES_IRON, 7}, {RES_GOLD, 11}, {RES_GEMS, 23}, {RES_EXP, 1}};
 
 inline const std::map<ResourceType, std::string> RES_NAMES = {

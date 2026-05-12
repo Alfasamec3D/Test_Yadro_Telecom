@@ -5,4 +5,4 @@
 #include "Dungeon.hpp"
 #include "IBot.hpp"
 
-long long run_simulation(Dungeon& d, int food, IBot& bot, std::ostream& out);
+void run_simulation(Dungeon& d, int food, IBot& bot, std::ostream& out);

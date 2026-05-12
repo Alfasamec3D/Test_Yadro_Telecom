@@ -218,7 +218,7 @@ ParseResult load_dungeon(const std::string& path) {
 
   res.dungeon =
       std::unique_ptr<Dungeon>(new Dungeon(tgt, rooms.begin(), rooms.end()));
-  res.food = m;
+  res.M_ = m;
   res.ok = true;
   return res;
 }
