@@ -1,30 +1,58 @@
 #pragma once
 
-#include <cstdint>
+#include <cstddef>
 #include <map>
-#include <string>
+#include <set>
 #include <vector>
 
 #include "Resources.hpp"
 
-struct Room {
-  int id;
-  std::vector<int> neighbors;
-  // Счётчики по типу ресурса. Парсер всегда заполняет все 4 ключа.
-  std::map<ResourceType, int> resources;
+class Room final {
+ private:
+  const size_t id_;
+  const std::vector<int> neighbors_;
+  std::map<ResourceType, int> resources_;
+  std::set<ResourceType> grabbed_resources_;
+
+ public:
+  Room(const size_t& id, std::vector<int>::iterator start_neigh,
+       std::vector<int>::iterator end_neigh,
+       const std::map<ResourceType, int> resources)
+      : id_(id), neighbors_(start_neigh, end_neigh), resources_(resources) {}
+
+  const size_t& id() const { return id_; }
+
+  const std::vector<int>& neighbors() const { return neighbors_; }
+
+  const std::map<ResourceType, int>& resources() const { return resources_; }
+
+  const std::set<ResourceType>& grabbed_resources() const {
+    return grabbed_resources_;
+  }
+
+  int grab(ResourceType type) {
+    grabbed_resources_.insert(type);
+    int loot = resources_[type];
+    resources_[type] = 0;
+    return loot;
+  }
 };
 
-struct Dungeon {
-  int n;                    // количество комнат, не считая нулевую
-  std::vector<Room> rooms;  // размер n+1, индекс = номер комнаты
-  int food;                 // M
-  ResourceType target;      // целевой ресурс с удвоенной ценностью
-};
+class Dungeon final {
+ private:
+  std::vector<Room> rooms_;
+  const ResourceType target_;
 
-struct ParseResult {
-  bool ok;
-  std::string bad_line;  // строка с ошибкой (как во входном файле)
-};
+ public:
+  Dungeon(const ResourceType& target, std::vector<Room>::iterator start_rooms,
+          std::vector<Room>::iterator end_rooms)
+      : target_(target), rooms_(start_rooms, end_rooms) {}
 
-// Читает подземелье из файла. При ошибке заполняет bad_line.
-ParseResult load_dungeon(const std::string& path, Dungeon& out);
+  const ResourceType& target() const { return target_; }
+
+  Room& room_id(const size_t& id) { return rooms_[id]; }
+
+  const Room& room_id(const size_t& id) const { return rooms_[id]; }
+
+  size_t N() const { return rooms_.size() - 1; }
+};

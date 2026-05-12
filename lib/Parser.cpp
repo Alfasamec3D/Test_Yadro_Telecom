@@ -1,19 +1,18 @@
-#include "Dungeon.hpp"
+#include "Parser.hpp"
 
 #include <algorithm>
 #include <array>
 #include <cctype>
 #include <fstream>
+#include <map>
 #include <sstream>
+#include <vector>
 
 namespace {
 
-// Порядок токенов ресурсов во входном файле: iron, gold, gems, exp.
-// Парсер читает их в этом порядке — поэтому нам нужен фиксированный
-// массив для обхода. Используем std::array, чтобы не плодить дубли.
 const std::array<ResourceType, 4>& resource_order() {
-  static const std::array<ResourceType, 4> order{
-      RES_IRON, RES_GOLD, RES_GEMS, RES_EXP};
+  static const std::array<ResourceType, 4> order{RES_IRON, RES_GOLD, RES_GEMS,
+                                                 RES_EXP};
   return order;
 }
 
@@ -66,7 +65,6 @@ bool split_neighbors(const std::string& s, std::vector<int>& out) {
 }
 
 bool parse_target(const std::string& s, ResourceType& out) {
-  // Используем RES_NAMES для обратного поиска: имя → enum.
   for (const auto& [type, name] : RES_NAMES) {
     if (s == name) {
       out = type;
@@ -76,9 +74,18 @@ bool parse_target(const std::string& s, ResourceType& out) {
   return false;
 }
 
+// Промежуточный POD для первой фазы — у Room const-поля, мы не можем
+// держать в std::vector<Room> «недозаполненные» комнаты. Сначала всё
+// читаем сюда, потом конструируем настоящие Room.
+struct RoomDraft {
+  int id = -1;
+  std::vector<int> neighbors;
+  std::map<ResourceType, int> resources;
+};
+
 }  // namespace
 
-ParseResult load_dungeon(const std::string& path, Dungeon& out) {
+ParseResult load_dungeon(const std::string& path) {
   ParseResult res;
   res.ok = false;
 
@@ -96,7 +103,6 @@ ParseResult load_dungeon(const std::string& path, Dungeon& out) {
       lines.push_back(line);
     }
   }
-
   if (lines.empty()) {
     res.bad_line = "";
     return res;
@@ -114,10 +120,8 @@ ParseResult load_dungeon(const std::string& path, Dungeon& out) {
     return res;
   }
 
-  out.n = n;
-  out.rooms.assign(n + 1, Room{});
+  std::vector<RoomDraft> drafts(n + 1);
   std::vector<bool> seen(n + 1, false);
-
   const auto& order = resource_order();
 
   for (int i = 0; i <= n; ++i) {
@@ -140,7 +144,7 @@ ParseResult load_dungeon(const std::string& path, Dungeon& out) {
     }
     seen[id] = true;
 
-    Room& r = out.rooms[id];
+    RoomDraft& r = drafts[id];
     r.id = id;
     if (!split_neighbors(tok[1], r.neighbors)) {
       res.bad_line = raw;
@@ -153,8 +157,6 @@ ParseResult load_dungeon(const std::string& path, Dungeon& out) {
       }
     }
 
-    // Заполняем карту ресурсов — всегда все 4 ключа, чтобы не плодить
-    // ветки «а есть ли такой ключ» у потребителей.
     for (ResourceType rt : order) r.resources[rt] = 0;
 
     if (tok.size() == 6) {
@@ -173,19 +175,17 @@ ParseResult load_dungeon(const std::string& path, Dungeon& out) {
         return res;
       }
     } else {
-      // tok.size() == 2: допустимо только для стартовой.
       if (id != 0) {
         res.bad_line = raw;
         return res;
       }
-      // resources уже все нули.
     }
   }
 
   for (int i = 0; i <= n; ++i) {
     if (!seen[i]) {
-      res.bad_line = lines[1 + i < (int)lines.size() ? 1 + i
-                                                    : (int)lines.size() - 1];
+      res.bad_line =
+          lines[1 + i < (int)lines.size() ? 1 + i : (int)lines.size() - 1];
       return res;
     }
   }
@@ -206,9 +206,19 @@ ParseResult load_dungeon(const std::string& path, Dungeon& out) {
     res.bad_line = last;
     return res;
   }
-  out.food = m;
-  out.target = tgt;
 
+  // Вторая фаза — конструируем настоящие Room из черновиков.
+  std::vector<Room> rooms;
+  rooms.reserve(n + 1);
+  for (int i = 0; i <= n; ++i) {
+    RoomDraft& d = drafts[i];
+    rooms.emplace_back(static_cast<size_t>(d.id), d.neighbors.begin(),
+                       d.neighbors.end(), d.resources);
+  }
+
+  res.dungeon =
+      std::unique_ptr<Dungeon>(new Dungeon(tgt, rooms.begin(), rooms.end()));
+  res.food = m;
   res.ok = true;
   return res;
 }

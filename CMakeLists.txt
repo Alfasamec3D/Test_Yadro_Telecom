@@ -13,11 +13,20 @@ target_include_directories(Resources INTERFACE "include/Resources")
 
 
 
-add_library(Dungeon STATIC lib/Dungeon.cpp)
+add_library(Dungeon INTERFACE)
 
-target_include_directories(Dungeon PUBLIC "include/Dungeon")
+target_include_directories(Dungeon INTERFACE "include/Dungeon")
 
-target_link_libraries(Dungeon PUBLIC Resources)
+target_link_libraries(Dungeon INTERFACE Resources)
+
+
+
+add_library(Parser STATIC lib/Parser.cpp)
+
+target_include_directories(Parser PUBLIC "include/Parser")
+
+target_link_libraries(Parser PUBLIC Dungeon)
+
 
 
 
@@ -46,7 +55,7 @@ target_link_libraries(Simulator PUBLIC Dungeon IBot)
 
 add_executable(main main.cpp)
 
-target_link_libraries(main PRIVATE AliceBot Simulator)
+target_link_libraries(main PRIVATE AliceBot Simulator Parser)
 
 
 option(BUILD_TESTS "Build tests" ON)

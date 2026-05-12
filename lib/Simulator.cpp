@@ -6,37 +6,32 @@
 
 namespace {
 
+
+
 // Обновляет известность для комнаты, в которую бот «зашёл».
-// По правилам:
-//   - сама комната становится VISITED (ресурсы открыты).
-//   - каждый её сосед становится не ниже VISIBLE (видны его проходы).
-//   - каждый сосед соседа — не ниже NUMBERED (известен номер).
 void reveal_on_enter(BotView& v, const Dungeon& d, int room) {
   auto bump = [&](int x, Knowledge target) {
     if (v.known[x] < target) v.known[x] = target;
   };
   auto fill_neighbors = [&](int x) {
-    if (v.neighbors[x].empty() && !d.rooms[x].neighbors.empty()) {
-      v.neighbors[x] = d.rooms[x].neighbors;
+    if (v.neighbors[x].empty() && !d.room_id(x).neighbors().empty()) {
+      v.neighbors[x] = d.room_id(x).neighbors();
     }
   };
 
   bump(room, VISITED);
-  // Копируем ресурсы из подземелья — они теперь видны боту.
-  v.res[room] = d.rooms[room].resources;
+  v.res[room] = d.room_id(room).resources();
   fill_neighbors(room);
 
-  for (int nb : d.rooms[room].neighbors) {
+  for (int nb : d.room_id(room).neighbors()) {
     bump(nb, VISIBLE);
     fill_neighbors(nb);
-    for (int nn : d.rooms[nb].neighbors) {
+    for (int nn : d.room_id(nb).neighbors()) {
       bump(nn, NUMBERED);
-      // У NUMBERED видим только номер — проходы НЕ заполняем.
     }
   }
 }
 
-// Считает суммарную ценность по итогам. Целевой ресурс — удвоенная цена.
 long long compute_total_value(const std::map<ResourceType, long long>& totals,
                               ResourceType target) {
   long long val = 0;
@@ -54,7 +49,6 @@ void print_result_line(std::ostream& out,
                        const std::map<ResourceType, long long>& totals,
                        long long val) {
   out << "result";
-  // std::map итерируется по возрастанию ключа → iron, gold, gems, exp.
   for (const auto& [type, count] : totals) {
     (void)type;
     out << ' ' << count;
@@ -64,27 +58,19 @@ void print_result_line(std::ostream& out,
 
 }  // namespace
 
-long long run_simulation(const Dungeon& d, IBot& bot, std::ostream& out) {
+long long run_simulation(Dungeon& d, int food, IBot& bot, std::ostream& out) {
+  const int n = d.N();
+
   BotView v;
-  v.n = d.n;
+  v.n = n;
   v.current = 0;
-  v.food_left = d.food;
-  v.food_total = d.food;
-  v.target = d.target;
-  v.known.assign(d.n + 1, UNKNOWN);
-  v.neighbors.assign(d.n + 1, {});
-  v.res.assign(d.n + 1, {});  // пустые карты — комнаты ещё не VISITED
+  v.food_left = food;
+  v.food_total = food;
+  v.target = d.target();
+  v.known.assign(n + 1, UNKNOWN);
+  v.neighbors.assign(n + 1, {});
+  v.res.assign(n + 1, {});
 
-  // Флаг «было ли что собирать» — отдельно от res, для печати "_".
-  // Карта на каждую комнату: ресурс → собирали ли его уже.
-  std::vector<std::map<ResourceType, bool>> collected(d.n + 1);
-  // Инициализируем все 4 ключа в false для каждой комнаты, чтобы
-  // дальше не возиться с «есть ли ключ».
-  for (auto& m : collected) {
-    for (const auto& [type, _] : BASE_VALUES) m[type] = false;
-  }
-
-  // Итог. Тоже карта — но с long long, чтобы не переполнить при больших M.
   std::map<ResourceType, long long> totals;
   for (const auto& [type, _] : BASE_VALUES) totals[type] = 0;
 
@@ -92,11 +78,12 @@ long long run_simulation(const Dungeon& d, IBot& bot, std::ostream& out) {
 
   auto print_state_now = [&](int room) {
     out << "state " << room;
-    // Идём по тем ресурсам, что есть в комнате (карта итерируется по
-    // возрастанию ключа: iron, gold, gems, exp).
+    // Состояние ресурса — _ если он есть в grabbed_resources комнаты.
+    // grabbed_resources на Room — источник истины.
+    const auto& grabbed = d.room_id(room).grabbed_resources();
     for (const auto& [type, count] : v.res[room]) {
       out << ' ';
-      if (collected[room][type])
+      if (grabbed.count(type))
         out << '_';
       else
         out << count;
@@ -128,7 +115,7 @@ long long run_simulation(const Dungeon& d, IBot& bot, std::ostream& out) {
       out << "go " << to << '\n';
       if (to != 0) print_state_now(to);
       if (to == 0) {
-        long long val = compute_total_value(totals, d.target);
+        long long val = compute_total_value(totals, d.target());
         print_result_line(out, totals, val);
         return val;
       }
@@ -140,24 +127,20 @@ long long run_simulation(const Dungeon& d, IBot& bot, std::ostream& out) {
       ResourceType k = a.resource;
       auto it = v.res[room].find(k);
       if (it == v.res[room].end() || it->second <= 0) break;
-      int amount = it->second;
 
-      // Если в этой комнате уже собирали хоть что-то — платим 1 еды.
-      bool any_before = false;
-      for (const auto& [type, was] : collected[room]) {
-        (void)type;
-        if (was) {
-          any_before = true;
-          break;
-        }
-      }
+      // Источник истины — Room. Первый сбор в комнате (когда grabbed
+      // ещё пуст) бесплатный, последующие стоят 1 еды.
+      bool any_before = !d.room_id(room).grabbed_resources().empty();
       if (any_before) {
         if (v.food_left <= 0) break;
         v.food_left -= 1;
       }
+
+      // grab() возвращает забранное количество и мутирует Room.
+      int amount = d.room_id(room).grab(k);
       totals[k] += amount;
+      // Синхронизируем то, что бот «видит» в этой комнате.
       it->second = 0;
-      collected[room][k] = true;
 
       auto name_it = RES_NAMES.find(k);
       out << "collect "
@@ -169,9 +152,8 @@ long long run_simulation(const Dungeon& d, IBot& bot, std::ostream& out) {
     break;
   }
 
-  // Аварийная печать, если бот сам остановился где-то.
   if (v.current == 0) {
-    long long val = compute_total_value(totals, d.target);
+    long long val = compute_total_value(totals, d.target());
     print_result_line(out, totals, val);
     return val;
   }
