@@ -20,7 +20,7 @@ target_link_libraries(parser_test PRIVATE Parser GTest::gtest_main)
 target_compile_definitions(parser_test PRIVATE
     TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/e2e/io")
 
-gtest_discover_tests(dungeon_test)
+gtest_discover_tests(parser_test)
 
 
 

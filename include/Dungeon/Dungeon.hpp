@@ -54,8 +54,8 @@ class Room final {
 
 class Dungeon final {
  private:
-  std::vector<Room> rooms_;
   const ResourceType target_;
+  std::vector<Room> rooms_;
 
  public:
   Dungeon(const ResourceType& target, std::vector<Room>::iterator start_rooms,

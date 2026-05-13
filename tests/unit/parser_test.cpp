@@ -12,7 +12,7 @@ TEST(Load_Dungeon_Test, BasicCase) {
   ParseResult expected_parse;
   expected_parse.ok = false;
   expected_parse.M_ = 6;
-  expected_parse.bad_line = "4 2 | 5 2 4 0 15";
+  expected_parse.bad_line = "4 2|5 2 4 0 15";
 
   ParseResult parse = load_dungeon(path.string());
 

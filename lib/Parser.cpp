@@ -138,7 +138,7 @@ ParseResult load_dungeon(const std::string& path) {
     }
 
     size_t id;
-    if (!parse_uint(tok[0], id) || id < 0 || id > n) {
+    if (!parse_uint(tok[0], id) || id > n) {
       res.bad_line = raw;
       return res;
     }
@@ -155,7 +155,7 @@ ParseResult load_dungeon(const std::string& path) {
       return res;
     }
     for (size_t nb : r.neighbors) {
-      if (nb < 0 || nb > n || nb == id) {
+      if (nb > n || nb == id) {
         res.bad_line = raw;
         return res;
       }
