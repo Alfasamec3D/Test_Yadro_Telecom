@@ -128,8 +128,8 @@ ParseResult load_dungeon(const std::string& path) {
   std::vector<RoomDraft> drafts(n + 1);
   std::vector<bool> seen(n + 1, false);
 
-  for (int i = 0; i <= n; ++i) {
-    const std::string& raw = lines[1 + i];
+  for (auto line = lines.begin() + 1; line != lines.end() - 1; ++line) {
+    const std::string& raw = *line;
     std::vector<std::string> tok = split_ws(raw);
 
     if (tok.size() != 6 && !(tok.size() == 2)) {
@@ -163,7 +163,7 @@ ParseResult load_dungeon(const std::string& path) {
 
     if (tok.size() == 6) {
       bool any_nonzero = false;
-      for (const auto & [restype, _] :BASE_VALUES) {
+      for (const auto& [restype, _] : BASE_VALUES) {
         int val;
         if (!parse_uint(tok[2 + restype], val) || val < 0 || val > 255) {
           res.bad_line = raw;

@@ -13,6 +13,31 @@ gtest_discover_tests(dungeon_test)
 
 
 
+add_executable(parser_test unit/parser_test.cpp)
+
+target_link_libraries(parser_test PRIVATE Parser GTest::gtest_main)
+
+target_compile_definitions(parser_test PRIVATE
+    TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/e2e/io")
+
+gtest_discover_tests(dungeon_test)
+
+
+
+add_executable(simulator_test unit/simulator_test.cpp)
+
+target_link_libraries(simulator_test PRIVATE Simulator GTest::gtest_main)
+
+gtest_discover_tests(simulator_test)
+
+
+
+add_executable(alice_bot_test unit/alice_bot_test.cpp)
+
+target_link_libraries(alice_bot_test PRIVATE AliceBot GTest::gtest_main)
+
+gtest_discover_tests(alice_bot_test)
+
 
 set(E2E_DIR    "${CMAKE_CURRENT_SOURCE_DIR}/e2e")
 set(CASES_DIR  "${E2E_DIR}/io")

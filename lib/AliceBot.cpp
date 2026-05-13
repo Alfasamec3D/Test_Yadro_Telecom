@@ -7,8 +7,6 @@
 namespace Bot {
 namespace {
 
-// Текущий уровень знания про комнату, NUMBERED-1 если не знаем ничего.
-// (Удобно для сравнений типа "если >= VISIBLE".)
 int known_level(const BotView& v, int room) {
   auto it = v.known.find(room);
   return it == v.known.end() ? 0 : (int)it->second;
@@ -26,7 +24,7 @@ const std::map<ResourceType, int>& res_of(const BotView& v, int room) {
   return it == v.res.end() ? empty : it->second;
 }
 
-// Расстояние от from до 0 по графу VISITED-комнат. INT_MAX, если нет пути.
+// Distance from from to 0 through  VISITED rooms
 int distance_to_zero_visited(const BotView& v, int from) {
   if (from == 0) return 0;
   std::map<int, int> dist;
@@ -47,10 +45,7 @@ int distance_to_zero_visited(const BotView& v, int from) {
   return INT_MAX;
 }
 
-// Кратчайший путь от from до 0 по VISITED-комнатам.
-// На развилках при восстановлении пути выбираем меньший номер.
 std::vector<int> shortest_path_to_zero(const BotView& v, int from) {
-  // BFS от 0 по VISITED.
   std::map<int, int> dist;
   std::queue<int> q;
   dist[0] = 0;
@@ -104,10 +99,10 @@ BestResult best_resource_in_room(const BotView& v, int room) {
   return result;
 }
 
-// Куда сделать следующий шаг в фазе исследования (см. ТЗ).
+// next step while investigating
 int next_explore_target(const BotView& v) {
   int cur = v.current;
-  // (1) Смежные «не посещённые, но хоть как-то известные» — наименьший номер.
+  // Negihbor not visited but known at some rate are th least number
   int best = -1;
   for (int nb : neighbors_of(v, cur)) {
     int lvl = known_level(v, nb);
@@ -116,7 +111,7 @@ int next_explore_target(const BotView& v) {
   }
   if (best != -1) return best;
 
-  // (2) BFS по VISITED — ищем ближайшую не посещённую (но известную) фронтиру.
+  // Search nearest not visited known
   std::map<int, int> dist;
   std::queue<int> q;
   dist[cur] = 0;
@@ -143,7 +138,7 @@ int next_explore_target(const BotView& v) {
   }
   if (best_room == -1) return -1;
 
-  // (3) Восстанавливаем первый шаг к best_room через посещённые.
+  // Restore first step to best_room through not visited
   std::map<int, int> parent;
   std::map<int, int> d2;
   d2[cur] = 0;
@@ -172,7 +167,7 @@ int next_explore_target(const BotView& v) {
 Action AliceBot::decide(const BotView& v) {
   ensure_sized(v.current);
 
-  // === Фаза возврата ===
+  // return phase
   if (returning_) {
     if (v.current == 0) return Action{ACT_STOP, 0, RES_IRON};
 
@@ -192,7 +187,7 @@ Action AliceBot::decide(const BotView& v) {
     return Action{ACT_MOVE, next, RES_IRON};
   }
 
-  // === Фаза исследования ===
+  // investigate phase
   int spent = v.food_total - v.food_left;
   bool budget_exhausted = (spent >= v.food_total / 2);
 

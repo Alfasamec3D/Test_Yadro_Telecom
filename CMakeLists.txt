@@ -42,7 +42,7 @@ add_library(AliceBot STATIC lib/AliceBot.cpp)
 
 target_include_directories(AliceBot PUBLIC "include/AliceBot")
 
-target_link_libraries(AliceBot PRIVATE IBot)
+target_link_libraries(AliceBot PUBLIC IBot)
 
 
 

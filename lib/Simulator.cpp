@@ -7,7 +7,6 @@
 namespace Simulator {
 namespace {
 
-// Обновляет знания бота при входе в комнату room.
 void reveal_on_enter(Bot::BotView& v, const Terracraft::Dungeon& d, int room) {
   auto bump = [&](int x, Bot::Knowledge target) {
     auto it = v.known.find(x);
@@ -58,7 +57,6 @@ void print_result_line(std::ostream& out,
   out << ' ' << val << std::endl;
 }
 
-// Безопасный доступ к соседям комнаты в BotView (map может не содержать ключа).
 const std::vector<int>& neighbors_of(const Bot::BotView& v, int room) {
   static const std::vector<int> empty;
   auto it = v.neighbors.find(room);
@@ -74,7 +72,7 @@ void run_simulation(Terracraft::Dungeon& d, int food, Bot::IBot& bot,
   v.food_left = food;
   v.food_total = food;
   v.target = d.target();
-  // known/neighbors/res — пустые. Заполнятся через reveal_on_enter.
+  // known/neighbors/res are fiiles via reveal_on_enter
 
   std::map<ResourceType, int> totals;
   for (const auto& [type, _] : BASE_VALUES) totals[type] = 0;
@@ -119,8 +117,7 @@ void run_simulation(Terracraft::Dungeon& d, int food, Bot::IBot& bot,
       auto it = room_res.find(k);
       if (it == room_res.end() || it->second <= 0) break;
 
-      // Источник истины — Room. Первый сбор в комнате (когда grabbed
-      // ещё пуст) бесплатный, последующие стоят 1 еды.
+      // Source of true is room. Fiesr grab when grabbed is empty is free
       if (!d.room_id(room).grabbed_resources().empty()) {
         if (v.food_left <= 0) break;
         v.food_left -= 1;

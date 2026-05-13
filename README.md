@@ -1,12 +1,13 @@
-# Test_Yadro_Telecom
-Yadro Telecom test task
+#  Terracraft Valrising
+
+ Terracraft Valrising bot simulation
 
 ## How to build
 
-1. Before building on you system must be installed Boost C++ libraries headers. To install on Linux use `sudo apt install libboost-dev` 
-2. Copy the repository
-3. Go to the source tree directory (the one containing `CMakeLists.txt` file)
-4. Generate a project buildsystem, then build the project through terminal. On linux just use
+
+1. Copy the repository
+2. Go to the source tree directory (the one containing `CMakeLists.txt` file)
+3. Generate a project buildsystem, then build the project through terminal. On linux just use
 
    `cmake -S . -B build -DCMAKE_BUILD_TYPE=Release && cmake --build ./build`
 
@@ -21,5 +22,5 @@ Yadro Telecom test task
 
 ## How to run
 
-1. In the same directory use `build/main`.
+1. In the same directory use `build/main <directory with input data>`.
 2. Enjoy the program.

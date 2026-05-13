@@ -25,3 +25,18 @@ TEST(GrabTest, BasicCase) {
   EXPECT_EQ(res, expected_res);
   EXPECT_EQ(gr_res, expected_gr_res);
 }
+
+TEST(OstreamTest, BasicCase) {
+  const size_t id = 1;
+  const std::vector<size_t> neigh = {1, 2, 3, 4};
+
+  std::map<ResourceType, int> expected_res = {
+      {RES_IRON, 2}, {RES_GOLD, 5}, {RES_GEMS, 7}, {RES_EXP, 11}};
+
+  Room room{id, neigh.begin(), neigh.end(), expected_res};
+
+  std::ostringstream os;
+  os << room;
+  const std::string expected_os = "state 1 2 5 7 11";
+  EXPECT_EQ(os.str(), expected_os);
+}

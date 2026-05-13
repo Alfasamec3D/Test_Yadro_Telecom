@@ -1,6 +1,6 @@
 
 set -u  # error on unset variables; we DON'T set -e because we want
-        # to keep going even if one case fails.
+        # to keep going even if one case fails
 
 # args
 if [[ $# -lt 1 ]]; then
@@ -14,10 +14,10 @@ if [[ ! -x "$BIN" ]]; then
     echo "error: '$BIN' is not an executable file" >&2
     exit 2
 fi
-# Canonicalize so it works from any cwd later.
+# Canonicalize so it works from any cwd later
 BIN="$(cd "$(dirname "$BIN")" && pwd)/$(basename "$BIN")"
 
-# ./io lives next to this script.
+# ./io lives next to this script
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CASES_DIR="$SCRIPT_DIR/io"
 
@@ -34,7 +34,7 @@ else
 fi
 
 # Normalize a file for comparison: strip CR, strip trailing whitespace per line,
-# trim trailing blank lines, ensure exactly one final newline.
+# trim trailing blank lines, ensure exactly one final newline
 normalize() {
     # $1 = source path, $2 = dest path
     sed -e 's/\r$//' -e 's/[[:space:]]*$//' "$1" \
@@ -54,7 +54,7 @@ run_case() {
     fi
 
     local tmp; tmp="$(mktemp -d)"
-    # Always clean up the temp dir, even on failure.
+    # Always clean up the temp dir, even on failure
     trap 'rm -rf "$tmp"' RETURN
 
     cp "$in" "$tmp/in.txt"
@@ -66,7 +66,7 @@ run_case() {
         return 1
     fi
 
-    # Normalize both sides before comparing.
+    # Normalize both sides before comparing
     normalize "$tmp/result.txt" "$tmp/got.norm"
     normalize "$expected"       "$tmp/exp.norm"
 
